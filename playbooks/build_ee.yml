@@ -1,0 +1,47 @@
+---
+- name: Playbook to configure execution environments
+  hosts: builder
+  gather_facts: true
+  pre_tasks:
+    - name: Validate that ansible-builder is installed on target system
+      block:
+        - name: Try command
+          ansible.builtin.command: ansible-builder --version
+          register: r_builder
+          changed_when: false
+      rescue:
+        - name: Try to install with rpms
+          block:
+            - name: Install ansible-builder from rpm
+              ansible.builtin.dnf:
+                name:
+                  - ansible-builder
+                  - ansible-core
+                enablerepo: "ansible-automation-platform-{{ aap_setup_down_version }}-for-rhel-{{ ansible_facts['distribution_major_version'] }}-{{ ansible_facts['architecture'] }}-rpms"
+                state: present
+              become: true
+          rescue:
+            - name: Install ansible-builder from pip # noqa package-latest
+              ansible.builtin.pip:
+                name:
+                  - ansible-builder
+                  - ansible-core
+                state: latest
+
+  tasks:
+    - name: Include common vars
+      ansible.builtin.include_vars:
+        dir: ../config/all
+        extensions:
+          - 'yml'
+
+    - name: Include env vars
+      ansible.builtin.include_vars:
+        dir: "../config/{{ env }}"
+        extensions:
+          - 'yml'
+
+    - name: Include ee_builder role
+      ansible.builtin.include_role:
+        name: infra.ee_utilities.ee_builder
+...

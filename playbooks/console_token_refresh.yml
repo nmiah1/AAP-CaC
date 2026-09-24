@@ -1,0 +1,32 @@
+---
+- name: Playbook to keep your console token from expiring
+  hosts: all
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Include common vars
+      ansible.builtin.include_vars:
+        dir: ../config/all
+        extensions:
+          - 'yml'
+
+    - name: Include env vars
+      ansible.builtin.include_vars:
+        dir: "../config/{{ env }}"
+        extensions:
+          - 'yml'
+
+    - name: Refresh token
+      ansible.builtin.uri:
+        url: https://sso.redhat.com/auth/realms/redhat-external/protocol/openid-connect/token
+        method: POST
+        return_content: true
+        body_format: form-urlencoded
+        headers:
+          accept: application/json
+        body:
+          grant_type: refresh_token
+          client_id: cloud-services
+          refresh_token: "{{ console_token }}"
+      no_log: true
+...
